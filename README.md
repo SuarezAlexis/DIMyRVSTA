@@ -1,2 +1,3 @@
 # DIMyRVSTA
 Repositorio para la clase de Diseño de Interfaces Multimedia y Realidad Virtual
+Cambios desde la rama Cambios...o eso espero...
