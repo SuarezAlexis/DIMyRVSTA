@@ -1,89 +1,208 @@
-/* Copyright (c) Mark J. Kilgard, 1997. */
+/* Este programa dibuja una "Tetera", este objeto esta definido
+* en GLUT, se crea una fuente de luz, y un material */
 
-/* This program is freely distributable without licensing fees
-and is provided without guarantee or warrantee expressed or
-implied. This program is -not- in the public domain. */
-
-/* This program was requested by Patrick Earl; hopefully someone else
-will write the equivalent Direct3D immediate mode program. */
-
+//Incluimos las librerias
 #include <GL/glut.h>
 
-GLfloat light_diffuse[] = { 1.0, 0.0, 0.0, 1.0 };  /* Red diffuse light. */
-GLfloat light_position[] = { 1.0, 1.0, 1.0, 0.0 };  /* Infinite light location. */
-GLfloat n[6][3] = {  /* Normals for the 6 faces of a cube. */
-	{ -1.0, 0.0, 0.0 },{ 0.0, 1.0, 0.0 },{ 1.0, 0.0, 0.0 },
-	{ 0.0, -1.0, 0.0 },{ 0.0, 0.0, 1.0 },{ 0.0, 0.0, -1.0 } };
-GLint faces[6][4] = {  /* Vertex indices for the 6 faces of a cube. */
-	{ 0, 1, 2, 3 },{ 3, 2, 6, 7 },{ 7, 6, 5, 4 },
-	{ 4, 5, 1, 0 },{ 5, 6, 2, 1 },{ 7, 4, 0, 3 } };
-GLfloat v[8][3];  /* Will be filled in with X,Y,Z vertexes. */
-
-void drawBox(void)
-{
-	int i;
-
-	for (i = 0; i < 6; i++) {
-		glBegin(GL_QUADS);
-		glNormal3fv(&n[i][0]);
-		glVertex3fv(&v[faces[i][0]][0]);
-		glVertex3fv(&v[faces[i][1]][0]);
-		glVertex3fv(&v[faces[i][2]][0]);
-		glVertex3fv(&v[faces[i][3]][0]);
-		glEnd();
-	}
-}
-
-void display(void)
-{
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	drawBox();
-	glutSwapBuffers();
-}
+GLfloat camPosition = 0.0f;
+#define CAM_GAP 1.0f;
+GLfloat size = 1.0;
+#define SIZE_GAP 0.2f
+GLint rot = 0;
+int rotating = 0;
+#define ANGLE 15
+GLfloat color[] = { 0.1,0.0,0.0,1.0 };
 
 void init(void)
 {
-	/* Setup cube vertex data. */
-	v[0][0] = v[1][0] = v[2][0] = v[3][0] = -1;
-	v[4][0] = v[5][0] = v[6][0] = v[7][0] = 1;
-	v[0][1] = v[1][1] = v[4][1] = v[5][1] = -1;
-	v[2][1] = v[3][1] = v[6][1] = v[7][1] = 1;
-	v[0][2] = v[3][2] = v[4][2] = v[7][2] = 1;
-	v[1][2] = v[2][2] = v[5][2] = v[6][2] = -1;
+	// Ubicamos la fuente de luz en el punto (1.0, 1.0, 1.0)
+	//GLfloat light_position[] = { 1.0, 1.0, 1.0, 0.0 };
 
-	/* Enable a single OpenGL light. */
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-	glEnable(GL_LIGHT0);
+	// Activamos la fuente de luz
 	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
 
-	/* Use depth buffering for hidden surface elimination. */
-	glEnable(GL_DEPTH_TEST);
-
-	/* Setup the view of the cube. */
-	glMatrixMode(GL_PROJECTION);
-	gluPerspective( /* field of view in degree */ 40.0,
-		/* aspect ratio */ 1.0,
-		/* Z near */ 1.0, /* Z far */ 10.0);
-	glMatrixMode(GL_MODELVIEW);
-	gluLookAt(0.0, 0.0, 5.0,  /* eye is at (0,0,5) */
-		0.0, 0.0, 0.0,      /* center is at (0,0,0) */
-		0.0, 1.0, 0.);      /* up is in positive Y direction */
-
-							/* Adjust cube position to be asthetic angle. */
-	glTranslatef(0.0, 0.0, -1.0);
-	glRotatef(60, 1.0, 0.0, 0.0);
-	glRotatef(-20, 0.0, 0.0, 1.0);
+	glClearDepth(1.0f);					// Activamos el valor de inicio del buffer de profundidad
+	glEnable(GL_DEPTH_TEST);				// Hacemos la prueba de profundidad
+	glDepthFunc(GL_LEQUAL);				// Tipo de prueba de profundidad a hacer
+	return;
 }
 
-int
-main(int argc, char **argv)
+void reshape(int w, int h)
 {
+	if (!h)
+		return;
+
+	glViewport(0, camPosition, (GLsizei)w, (GLsizei)h);
+	// Activamos la matriz de proyeccion.
+	glMatrixMode(GL_PROJECTION);
+	// "limpiamos" esta con la matriz identidad.
+	glLoadIdentity();
+	// Usamos proyeccion ortogonal
+	//glOrtho(-200, 200, -200, 200, -200, 200);
+	gluPerspective(30.0f, (GLfloat)800 / (GLfloat)600, 0.03, 1000.0);
+	// Activamos la matriz de modelado/visionado. 
+	glMatrixMode(GL_MODELVIEW);
+	// "Limpiamos" la matriz
+	glLoadIdentity();
+	return;
+}
+
+// Aqui ponemos lo que queremos dibujar.
+void display(void)
+{
+	// Propiedades del material
+	GLfloat mat_ambient[] = { 0.7f, 0.7f, 0.7f, 1.0f };
+	GLfloat mat_diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+	GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	GLfloat mat_shininess[] = { 100.0f };
+
+	// "Limpiamos" el frame buffer con el color de "Clear", en este 
+	// caso negro. 
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glMatrixMode(GL_MODELVIEW_MATRIX);
+	glLoadIdentity();
+
+	glTranslatef(0.0, 0.0, -20+camPosition);
+	// Rotacion de 30 grados en torno al eje x
+	glRotated(30.0, 1.0, 0.0, 0.0);
+	// Rotacion de -30 grados en torno al eje y
+	glRotated(-30, 0.0, 1.0, 0.0);
+	//Rotación dada por el usuario (eje y)
+	glRotated(rot,0.0,0.1,0.0);
+
+	// Dibujamos una "Tetera" y le aplico el material
+	glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, color);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+	glutSolidTeapot(size);
+	//glutWireCube(2.0f);
+
+	//glFlush();
+	glutSwapBuffers();
+	return;
+}
+
+// Termina la ejecucion del programa cuando se presiona ESC
+void keyboard(unsigned char key, int x, int y)
+{
+	switch (key)
+	{
+		case 27: exit(0);
+			break;
+		case 'r':
+			color[0] = 1.0f;
+			color[1] = 0.0f;
+			color[2] = 0.0f;
+			break;
+		case 'g':
+			color[0] = 0.0f;
+			color[1] = 1.0f;
+			color[2] = 0.0f;
+			break;
+		case 'b':
+			color[0] = 0.0f;
+			color[1] = 0.0f;
+			color[2] = 1.0f;
+			break;
+	}
+	glutPostRedisplay();
+	return;
+}
+
+void specialKeys(int key, int x, int y)
+{
+	switch (key)
+	{
+		case GLUT_KEY_LEFT:
+			if (glutGetModifiers() == GLUT_ACTIVE_CTRL)
+			{
+				rotating = 1;
+			}
+			else
+			{
+				rotating = 0;
+				rot += ANGLE;
+			}
+			break;
+		case GLUT_KEY_RIGHT:
+			if (glutGetModifiers() == GLUT_ACTIVE_CTRL)
+			{
+				rotating = 2;
+			}
+			else
+			{
+				rotating = 0;
+				rot -= ANGLE;
+			}
+			break;
+		case GLUT_KEY_DOWN:
+			size -= SIZE_GAP;
+			break;
+		case GLUT_KEY_UP:
+			size += SIZE_GAP;
+			break;
+		case GLUT_KEY_F1:
+			camPosition -= CAM_GAP;
+			break;
+		case GLUT_KEY_F2:
+			camPosition += CAM_GAP;
+			break;
+	}
+	glutPostRedisplay();
+	return;
+}
+
+void idleFunction()
+{
+	switch (rotating)
+	{
+		case 0:
+			break;
+		case 1:
+			rot++;
+			break;
+		case 2:
+			rot--;
+			break;
+	}
+	glutPostRedisplay();
+}
+
+// Main del programa.
+int main(int argc, char **argv)
+{
+	// Inicializo OpenGL
 	glutInit(&argc, argv);
+
+	// Activamos buffer simple y colores del tipo RGB  
+	//glutInitDisplayMode (GLUT_SINGLE | GLUT_RGB| GLUT_DEPTH);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutCreateWindow("red 3D lighted cube");
-	glutDisplayFunc(display);
+
+	// Definimos una ventana de medidas 300 x 300 como ventana 
+	// de visualizacion en pixels
+	glutInitWindowSize(300, 300);
+
+	// Posicionamos la ventana en la esquina superior izquierda de 
+	// la pantalla.
+	glutInitWindowPosition(0, 0);
+
+	// Creamos literalmente la ventana y le adjudicamos el nombre que se
+	// observara en su barra de titulo.
+	glutCreateWindow("Tetera");
+
+	// Inicializamos el sistema 
 	init();
+
+	glutDisplayFunc(display);
+	glutReshapeFunc(reshape);
+	glutKeyboardFunc(keyboard);
+	glutSpecialFunc(specialKeys);
+	glutIdleFunc(idleFunction);
 	glutMainLoop();
-	return 0;             /* ANSI C requires main to return int. */
+
+	// ANSI C requiere que main retorne un valor entero.
+	return 0;
 }
