@@ -80,6 +80,9 @@ void display(void)
 	glutSolidTeapot(size);
 	//glutWireCube(2.0f);
 
+	glMatrixMode(GL_PROJECTION_MATRIX);
+	glLoadIdentity();
+
 	//glFlush();
 	glutSwapBuffers();
 	return;
@@ -183,7 +186,7 @@ int main(int argc, char **argv)
 
 	// Definimos una ventana de medidas 300 x 300 como ventana 
 	// de visualizacion en pixels
-	glutInitWindowSize(300, 300);
+	glutInitWindowSize(500, 500);
 
 	// Posicionamos la ventana en la esquina superior izquierda de 
 	// la pantalla.
